@@ -1,94 +1,53 @@
 class UsersController < ApplicationController
-  def authenticate
-    un = params.fetch("input_username")
-    pw = params.fetch("input_password")
-    
-    user = User.where({:username => un }).at(0)
-    if user == nil
-      redirect_to("/user_sign_in", { :alert => "No one by that name"})
-    else
-      if user.authenticate(pw)
-        session.store(:user_id, user.id)
-        redirect_to("/", { :notice => "Welcome back, #{user.username}!"})
-      else
-        redirect_to("/user_sign_in", { :alert => "Nice try"})
-      end
+  # skip_before_action(:force_user_sign_in, { :only => [:new_registration_form, :create] })
   
-    end
-    
-    # get the username from params
-    # get the password from params
-    # look up the record from the db matching username
-    # if there's no record, redirect back to sign in
-    # if there is a record, check to see if password matches
-    # if not, redirect back to sign in form
-    # if so, set the cookie
-    # redirect to homepage 
-  end
-  
-  def new_session_form
-    render( :template => "users/sign_in.html.erb")
-  end
   def new_registration_form
-    render( :template => "users/sign_up.html.erb")
-  end
-
-  def sign_out
-    reset_session
-    redirect_to("/", { :notice => "see ya later"})
-  end
-
-  
-  def index
-    @users = User.all.order({ :username => :asc })
-
-    render({ :template => "users/index.html" })
-  end
-
-  def show
-    the_username = params.fetch("the_username")
-    @user = User.where({ :username => the_username }).at(0)
-
-    render({ :template => "users/show.html.erb" })
+    render({ :template => "user_sessions/sign_up.html.erb" })
   end
 
   def create
-    user = User.new
+    @user = User.new
+    @user.email = params.fetch("query_email")
+    @user.password = params.fetch("query_password")
+    @user.password_confirmation = params.fetch("query_password_confirmation")
+    @user.username = params.fetch("query_username")
 
-    user.username = params.fetch("input_username")
-    user.password = params.fetch("input_password")
-    user.password_confirmation = params.fetch("input_password_confirmation")
-
-    save_status = user.save
+    save_status = @user.save
 
     if save_status == true
-      session.store(:user_id, user.id)
-
-      redirect_to("/users/#{user.username}", { :notice => "Welcome, #{user.username}!"})
+      session.store(:user_id,  @user.id)
+   
+      redirect_to("/", { :notice => "User account created successfully."})
     else
-      redirect_to("/user_sign_up", { :alert => user.errors.full_messages.to_sentence})
+      redirect_to("/user_sign_up", { :alert => "User account failed to create successfully."})
     end
+  end
+    
+  def edit_registration_form
+    render({ :template => "users/edit_profile.html.erb" })
   end
 
   def update
-    the_id = params.fetch("the_user_id")
-    user = User.where({ :id => the_id }).at(0)
-
-
-    user.username = params.fetch("input_username")
-
-    user.save
+    @user = @current_user
+    @user.email = params.fetch("query_email")
+    @user.password = params.fetch("query_password")
+    @user.password_confirmation = params.fetch("query_password_confirmation")
+    @user.username = params.fetch("query_username")
     
-    redirect_to("/users/#{user.username}")
+    if @user.valid?
+      @user.save
+
+      redirect_to("/", { :notice => "User account updated successfully."})
+    else
+      render({ :template => "users/edit_profile_with_errors.html.erb" })
+    end
   end
 
   def destroy
-    username = params.fetch("the_username")
-    user = User.where({ :username => username }).at(0)
-
-    user.destroy
-
-    redirect_to("/users")
+    @current_user.destroy
+    reset_session
+    
+    redirect_to("/", { :notice => "User account cancelled" })
   end
-
+  
 end
